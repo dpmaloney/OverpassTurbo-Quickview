@@ -3,9 +3,6 @@
   "description": "View Google Streetview/Maps in Overpass Turbo",
   "version": "1.0",
   "manifest_version": 3,
-  "action": {
-    "default_popup": "hello.html"
-  },
   "content_scripts": [
     {
       "matches": ["https://overpass-turbo.eu/*"],

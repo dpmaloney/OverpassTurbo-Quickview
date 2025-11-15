@@ -324,14 +324,10 @@
     // Load appropriate view
     if (tabName === 'maps') {
       // Google Maps embed URL
-      iframe.src = `https://www.google.com/maps?q=${lat},${lon}&output=embed&z=15`;
+      iframe.src = `https://www.google.com/maps/embed/v1/view?key=AIzaSyCamo8uLOLtnbAGAG9-j6yf0fyjJq0m71M&center=${lat},${lon}&zoom=18&maptype=satellite`;
     } else if (tabName === 'streetview') {
-      // Google Street View embed URL
-      iframe.src = `https://www.google.com/maps/embed/v1/streetview?location=${lat},${lon}&key=YOUR_API_KEY_HERE&heading=0&pitch=0&fov=90`;
-
-      // Note: Street View requires an API key for embedding
-      // For now, we'll try the standard embed which may have limitations
-      iframe.src = `https://www.google.com/maps/@${lat},${lon},3a,75y,0h,90t/data=!3m7!1e1!3m5!1s0!2e0!6shttps:%2F%2Fstreetviewpixels-pa.googleapis.com%2Fv1%2Fthumbnail%3Fpanoid%3D0%26cb_client%3Dmaps_sv.tactile.gps%26w%3D203%26h%3D100%26yaw%3D0%26pitch%3D0%26thumbfov%3D100!7i13312!8i6656?output=embed`;
+      // Google Street View embed URL with API key
+      iframe.src = `https://www.google.com/maps/embed/v1/streetview?location=${lat},${lon}&key=AIzaSyCamo8uLOLtnbAGAG9-j6yf0fyjJq0m71M&heading=0&pitch=0&fov=90`;
     }
   }
 
