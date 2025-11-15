@@ -294,12 +294,14 @@
     });
 
     // Load appropriate view
+    const apiKey = 'AIzaSyCamo8uLOLtnbAGAG9-j6yf0fyjJq0m71M';
+
     if (tabName === 'maps') {
-      // Google Maps standard embed URL (no API key needed)
-      iframe.src = `https://maps.google.com/maps?q=${lat},${lon}&t=k&z=18&output=embed`;
+      // Google Maps Embed API - satellite view
+      iframe.src = `https://www.google.com/maps/embed/v1/view?key=${apiKey}&center=${lat},${lon}&zoom=19&maptype=satellite`;
     } else if (tabName === 'streetview') {
-      // Google Street View using standard maps URL
-      iframe.src = `https://maps.google.com/maps?q=&layer=c&cbll=${lat},${lon}&cbp=11,0,0,0,0&output=embed`;
+      // Google Street View Embed API
+      iframe.src = `https://www.google.com/maps/embed/v1/streetview?key=${apiKey}&location=${lat},${lon}&heading=210&pitch=10&fov=90`;
     }
   }
 
