@@ -1,0 +1,1 @@
+This is a chrome extension to show google streetview/google maps in overpass-turbo, making it easy to quickly scan a large number of results.

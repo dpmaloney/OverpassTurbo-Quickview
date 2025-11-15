@@ -1,0 +1,10 @@
+{
+    "name": "Overpass Turbo Viewer",
+    "description": "View Google Streetview/Maps in Overpass Turbo",
+    "version": "1.0",
+    "manifest_version": 3,
+    "action": {
+      "default_popup": "hello.html",
+      "default_icon": "hello_extensions.png"
+    }
+  }
