@@ -16,18 +16,7 @@
 - **Build Tools**: None (currently pure static files)
 - **Version Control**: Git
 
-## Repository Structure
 
-```
-OverpassTurbo-Quickview/
-├── .git/                    # Git repository metadata
-├── .gitattributes          # Git attributes configuration
-├── README.md               # Project description
-├── manifest.json           # Chrome extension manifest (V3)
-├── hello.html             # Extension popup HTML
-├── popup.js               # Popup script logic
-└── CLAUDE.md              # This file - AI assistant guide
-```
 
 ## File Descriptions
 
@@ -44,17 +33,6 @@ OverpassTurbo-Quickview/
 - Version: 1.0
 - Manifest Version: 3
 
-### hello.html
-**Purpose**: Extension popup interface
-- Simple HTML structure with script injection
-- **Current State**: Minimal scaffold with header and popup.js reference
-- **Line Reference**: hello.html:1-6
-
-### popup.js
-**Purpose**: Popup behavior and logic
-- **Current State**: Basic console.log placeholder
-- **Future**: Will contain main extension logic for Overpass Turbo integration
-- **Line Reference**: popup.js:1
 
 ## Development Workflows
 
@@ -154,9 +132,9 @@ When implementing new features:
 
 ### Immediate Needs
 
-1. **Icon Assets**: Missing icon file referenced in manifest (hello_extensions.png)
-2. **Content Script**: To interact with Overpass Turbo web pages
-3. **Permissions**: Add necessary permissions for:
+
+1. **Content Script**: To interact with Overpass Turbo web pages
+2. **Permissions**: Add necessary permissions for:
    - Active tab access
    - Storage (for user preferences)
    - Optional: Geolocation
