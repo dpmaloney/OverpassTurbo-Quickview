@@ -6,6 +6,7 @@
 
   let viewerModal = null;
   let currentCoordinates = null;
+  let lastClickedCoordinates = null; // Store coordinates from the last clicked feature
 
   // Initialize the extension
   function init() {
@@ -99,15 +100,23 @@
         return;
       }
 
-      // V to open viewer with clicked location or selected feature
+      // V to open viewer with clicked location
       if (e.key === 'v' || e.key === 'V') {
         console.log('OverpassTurbo-Quickview: V pressed');
-        const coords = getCoordinatesFromPage();
-        if (coords) {
-          console.log('OverpassTurbo-Quickview: Found coordinates:', coords);
-          openViewer(coords);
+        if (lastClickedCoordinates) {
+          console.log('OverpassTurbo-Quickview: Using last clicked coordinates:', lastClickedCoordinates);
+          openViewer(lastClickedCoordinates);
         } else {
-          console.log('OverpassTurbo-Quickview: No coordinates found. Try clicking on a map marker first.');
+          console.log('OverpassTurbo-Quickview: No coordinates stored. Try clicking on a map marker first.');
+          // Try to get from currently open popup as fallback
+          const popup = document.querySelector('.leaflet-popup-content');
+          if (popup) {
+            const coords = extractCoordinatesFromText(popup.textContent);
+            if (coords) {
+              console.log('OverpassTurbo-Quickview: Found coordinates from open popup:', coords);
+              openViewer(coords);
+            }
+          }
         }
       }
 
@@ -129,11 +138,27 @@
   function setupMapMonitoring() {
     // Add a mutation observer to watch for popup changes
     const observer = new MutationObserver(function(mutations) {
-      // Check for Leaflet popups
-      const popup = document.querySelector('.leaflet-popup-content');
-      if (popup && !popup.querySelector('.overpass-quickview-btn')) {
-        addViewButtonToPopup(popup);
-      }
+      // Look for Leaflet popups
+      const popups = document.querySelectorAll('.leaflet-popup-content');
+
+      popups.forEach(popup => {
+        // Check if this popup already has our button
+        if (popup.querySelector('.overpass-quickview-btn')) {
+          return;
+        }
+
+        // Extract coordinates from the popup
+        const coords = extractCoordinatesFromPopup(popup);
+        if (coords) {
+          console.log('OverpassTurbo-Quickview: Found popup with coordinates:', coords);
+
+          // Store these as the last clicked coordinates
+          lastClickedCoordinates = coords;
+
+          // Add the view button
+          addViewButtonToPopup(popup, coords);
+        }
+      });
     });
 
     // Observe the entire document for popup changes
@@ -142,74 +167,68 @@
       subtree: true
     });
 
-    // Also add click listener to the map
-    setTimeout(() => {
-      const mapContainer = document.querySelector('#map');
-      if (mapContainer) {
-        console.log('OverpassTurbo-Quickview: Map container found');
+    console.log('OverpassTurbo-Quickview: Monitoring for popups');
+  }
 
-        // Add click listener to capture coordinates
-        mapContainer.addEventListener('click', function(e) {
-          // Try to get coordinates from Leaflet map
-          setTimeout(() => {
-            const coords = getCoordinatesFromPage();
-            if (coords) {
-              console.log('OverpassTurbo-Quickview: Stored coordinates from click:', coords);
-            }
-          }, 100);
-        });
-      } else {
-        console.log('OverpassTurbo-Quickview: Map container not found yet');
-      }
-    }, 2000);
+  // Extract coordinates specifically from a popup element
+  function extractCoordinatesFromPopup(popup) {
+    if (!popup) return null;
+
+    // Get all the text and HTML content
+    const textContent = popup.textContent || '';
+    const htmlContent = popup.innerHTML || '';
+
+    console.log('OverpassTurbo-Quickview: Popup content:', textContent.substring(0, 200));
+
+    // Try various patterns
+    const coords = extractCoordinatesFromText(textContent);
+    if (coords) {
+      return coords;
+    }
+
+    // Also try to find in HTML (sometimes coordinates are in attributes)
+    const coordsFromHtml = extractCoordinatesFromText(htmlContent);
+    return coordsFromHtml;
   }
 
   // Add view button to popup
-  function addViewButtonToPopup(popup) {
-    const coords = extractCoordinatesFromText(popup.textContent);
+  function addViewButtonToPopup(popup, coords) {
     if (!coords) return;
+
+    // Create a separator
+    const separator = document.createElement('hr');
+    separator.style.cssText = 'margin: 8px 0; border: none; border-top: 1px solid #ddd;';
 
     const btn = document.createElement('button');
     btn.className = 'overpass-quickview-btn';
     btn.textContent = '🗺️ View in Maps/Street View';
-    btn.style.cssText = 'display: block; width: 100%; margin-top: 8px; padding: 8px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500;';
+    btn.style.cssText = 'display: block; width: 100%; margin-top: 4px; padding: 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; transition: background 0.2s;';
+
+    btn.addEventListener('mouseover', function() {
+      this.style.background = '#218838';
+    });
+
+    btn.addEventListener('mouseout', function() {
+      this.style.background = '#28a745';
+    });
 
     btn.addEventListener('click', function(e) {
       e.stopPropagation();
+      e.preventDefault();
       console.log('OverpassTurbo-Quickview: Button clicked with coords:', coords);
       openViewer(coords);
     });
 
+    popup.appendChild(separator);
     popup.appendChild(btn);
     console.log('OverpassTurbo-Quickview: Added view button to popup');
-  }
-
-  // Extract coordinates from various sources on the page
-  function getCoordinatesFromPage() {
-    // Try to get from open popup first
-    const popup = document.querySelector('.leaflet-popup-content');
-    if (popup) {
-      const coords = extractCoordinatesFromText(popup.textContent);
-      if (coords) return coords;
-    }
-
-    // Try to get from data viewer (when a feature is selected)
-    const dataViewer = document.querySelector('#data-viewer, #dataviewer');
-    if (dataViewer) {
-      const coords = extractCoordinatesFromText(dataViewer.textContent);
-      if (coords) return coords;
-    }
-
-    // Try to get from anywhere in the page that has coordinate info
-    const allText = document.body.textContent;
-    return extractCoordinatesFromText(allText);
   }
 
   // Extract coordinates from text using multiple patterns
   function extractCoordinatesFromText(text) {
     if (!text) return null;
 
-    // Pattern 1: "lat": 51.5, "lon": -0.1
+    // Pattern 1: "lat": 51.5, "lon": -0.1 (JSON format)
     let match = text.match(/"lat"[:\s]+(-?\d+\.?\d*)[,\s]+"lon"[:\s]+(-?\d+\.?\d*)/i);
     if (match) {
       return { lat: parseFloat(match[1]), lon: parseFloat(match[2]) };
@@ -221,21 +240,16 @@
       return { lat: parseFloat(match[1]), lon: parseFloat(match[2]) };
     }
 
-    // Pattern 3: (51.5, -0.1) or [51.5, -0.1]
-    match = text.match(/[\(\[]\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*[\)\]]/);
-    if (match) {
-      const val1 = parseFloat(match[1]);
-      const val2 = parseFloat(match[2]);
-      // Determine which is lat/lon based on range
-      if (Math.abs(val1) <= 90 && Math.abs(val2) <= 180) {
-        return { lat: val1, lon: val2 };
+    // Pattern 3: Just the decimal numbers in parentheses or brackets
+    // This pattern looks for two decimal numbers that could be coordinates
+    const decimals = text.match(/(-?\d+\.\d{4,})/g);
+    if (decimals && decimals.length >= 2) {
+      const lat = parseFloat(decimals[0]);
+      const lon = parseFloat(decimals[1]);
+      // Validate ranges
+      if (Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+        return { lat, lon };
       }
-    }
-
-    // Pattern 4: Look for center coordinate from Overpass Turbo
-    match = text.match(/center[:\s]+(-?\d+\.?\d*)[,\s]+(-?\d+\.?\d*)/i);
-    if (match) {
-      return { lat: parseFloat(match[1]), lon: parseFloat(match[2]) };
     }
 
     return null;
@@ -249,6 +263,7 @@
     }
 
     currentCoordinates = coords;
+    lastClickedCoordinates = coords; // Update the last clicked
     console.log('OverpassTurbo-Quickview: Opening viewer with:', coords);
 
     // Update coordinates display
