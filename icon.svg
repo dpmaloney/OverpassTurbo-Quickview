@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="#007bff" stroke="#0056b3" stroke-width="4"/>
+
+  <!-- Map pin shape -->
+  <path d="M 64 25 C 50 25 40 35 40 49 C 40 60 50 70 64 85 C 78 70 88 60 88 49 C 88 35 78 25 64 25 Z" fill="#28a745" stroke="#1e7e34" stroke-width="2"/>
+
+  <!-- Eye background (white circle) -->
+  <circle cx="64" cy="49" r="14" fill="white" stroke="#1e7e34" stroke-width="1.5"/>
+
+  <!-- Eye outer ellipse -->
+  <ellipse cx="64" cy="49" rx="12" ry="8" fill="none" stroke="#333" stroke-width="2"/>
+
+  <!-- Iris -->
+  <circle cx="64" cy="49" r="5" fill="#007bff"/>
+
+  <!-- Pupil -->
+  <circle cx="64" cy="49" r="2.5" fill="#000"/>
+
+  <!-- Eye highlight -->
+  <circle cx="65.5" cy="47.5" r="1.5" fill="white" opacity="0.9"/>
+</svg>
