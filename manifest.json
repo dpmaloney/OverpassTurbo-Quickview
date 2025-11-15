@@ -1,9 +1,22 @@
 {
-    "name": "Overpass Turbo Viewer",
-    "description": "View Google Streetview/Maps in Overpass Turbo",
-    "version": "1.0",
-    "manifest_version": 3,
-    "action": {
-      "default_popup": "hello.html"
+  "name": "Overpass Turbo Viewer",
+  "description": "View Google Streetview/Maps in Overpass Turbo",
+  "version": "1.0",
+  "manifest_version": 3,
+  "content_scripts": [
+    {
+      "matches": ["https://overpass-turbo.eu/*"],
+      "js": ["content.js"],
+      "css": ["viewer.css"],
+      "run_at": "document_end"
     }
-  }
+  ],
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://overpass-turbo.eu/*",
+    "https://www.google.com/*"
+  ]
+}
