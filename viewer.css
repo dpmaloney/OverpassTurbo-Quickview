@@ -80,6 +80,26 @@
   color: #fff;
 }
 
+.overpass-quickview-settings {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #6c757d;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.overpass-quickview-settings:hover {
+  background: #5a6268;
+}
+
 .overpass-quickview-coordinates {
   font-size: 13px;
   color: #6c757d;
@@ -240,4 +260,110 @@
 
 #overpass-quickview-modal:not(.overpass-quickview-hidden) .overpass-quickview-container {
   animation: fadeIn 0.2s ease-out;
+}
+
+/* Settings Panel */
+.overpass-quickview-settings-panel {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 500px;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  padding: 20px;
+}
+
+.overpass-quickview-settings-content h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  color: #212529;
+}
+
+.overpass-quickview-settings-content label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.overpass-quickview-settings-content input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: 'Courier New', monospace;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+}
+
+.overpass-quickview-settings-content input[type="text"]:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.overpass-quickview-settings-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.overpass-quickview-settings-buttons button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#save-api-key {
+  background: #28a745;
+  color: #fff;
+}
+
+#save-api-key:hover {
+  background: #218838;
+}
+
+#clear-api-key {
+  background: #dc3545;
+  color: #fff;
+}
+
+#clear-api-key:hover {
+  background: #c82333;
+}
+
+#cancel-settings {
+  background: #6c757d;
+  color: #fff;
+}
+
+#cancel-settings:hover {
+  background: #5a6268;
+}
+
+.overpass-quickview-settings-note {
+  font-size: 12px;
+  color: #6c757d;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.overpass-quickview-settings-note a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.overpass-quickview-settings-note a:hover {
+  text-decoration: underline;
 }

@@ -50,7 +50,24 @@
             <button class="overpass-quickview-tab" data-tab="streetview">Street View</button>
           </div>
           <div class="overpass-quickview-coordinates"></div>
+          <button class="overpass-quickview-settings" title="Settings">⚙️</button>
           <button class="overpass-quickview-close" title="Close (Esc)">&times;</button>
+        </div>
+        <div class="overpass-quickview-settings-panel" style="display: none;">
+          <div class="overpass-quickview-settings-content">
+            <h3>Settings</h3>
+            <label for="api-key-input">Google Maps API Key (optional):</label>
+            <input type="text" id="api-key-input" placeholder="Enter your API key here" />
+            <div class="overpass-quickview-settings-buttons">
+              <button id="save-api-key">Save</button>
+              <button id="clear-api-key">Clear</button>
+              <button id="cancel-settings">Cancel</button>
+            </div>
+            <p class="overpass-quickview-settings-note">
+              If no API key is provided, the extension will use standard Google Maps embed URLs with limited features.
+              <a href="https://developers.google.com/maps/documentation/embed/get-api-key" target="_blank">Get an API key</a>
+            </p>
+          </div>
         </div>
         <div class="overpass-quickview-content">
           <iframe class="overpass-quickview-frame" id="quickview-frame"></iframe>
@@ -83,6 +100,66 @@
           console.log('Coordinates copied:', text);
         });
       }
+    });
+
+    // Settings button
+    viewerModal.querySelector('.overpass-quickview-settings').addEventListener('click', function(e) {
+      e.stopPropagation();
+      toggleSettings();
+    });
+
+    // Settings panel buttons
+    viewerModal.querySelector('#save-api-key').addEventListener('click', saveApiKey);
+    viewerModal.querySelector('#clear-api-key').addEventListener('click', clearApiKey);
+    viewerModal.querySelector('#cancel-settings').addEventListener('click', function() {
+      viewerModal.querySelector('.overpass-quickview-settings-panel').style.display = 'none';
+    });
+
+    // Load saved API key when settings panel is opened
+    loadApiKeyToInput();
+  }
+
+  // Toggle settings panel
+  function toggleSettings() {
+    const panel = viewerModal.querySelector('.overpass-quickview-settings-panel');
+    if (panel.style.display === 'none') {
+      loadApiKeyToInput();
+      panel.style.display = 'block';
+    } else {
+      panel.style.display = 'none';
+    }
+  }
+
+  // Load API key into input field
+  function loadApiKeyToInput() {
+    chrome.storage.sync.get(['googleMapsApiKey'], function(result) {
+      const input = viewerModal.querySelector('#api-key-input');
+      if (result.googleMapsApiKey) {
+        input.value = result.googleMapsApiKey;
+      }
+    });
+  }
+
+  // Save API key
+  function saveApiKey() {
+    const input = viewerModal.querySelector('#api-key-input');
+    const apiKey = input.value.trim();
+
+    chrome.storage.sync.set({ googleMapsApiKey: apiKey }, function() {
+      console.log('OverpassTurbo-Quickview: API key saved');
+      alert('API key saved successfully!');
+      viewerModal.querySelector('.overpass-quickview-settings-panel').style.display = 'none';
+    });
+  }
+
+  // Clear API key
+  function clearApiKey() {
+    chrome.storage.sync.remove('googleMapsApiKey', function() {
+      console.log('OverpassTurbo-Quickview: API key cleared');
+      const input = viewerModal.querySelector('#api-key-input');
+      input.value = '';
+      alert('API key cleared. Will use standard embed URLs.');
+      viewerModal.querySelector('.overpass-quickview-settings-panel').style.display = 'none';
     });
   }
 
@@ -308,16 +385,34 @@
       tab.classList.toggle('active', tab.dataset.tab === tabName);
     });
 
-    // Load appropriate view
-    const apiKey = 'AIzaSyCamo8uLOLtnbAGAG9-j6yf0fyjJq0m71M';
+    // Get saved API key and load appropriate view
+    chrome.storage.sync.get(['googleMapsApiKey'], function(result) {
+      const apiKey = result.googleMapsApiKey;
 
-    if (tabName === 'maps') {
-      // Google Maps Embed API - satellite view
-      iframe.src = `https://www.google.com/maps/embed/v1/view?key=${apiKey}&center=${lat},${lon}&zoom=19&maptype=satellite`;
-    } else if (tabName === 'streetview') {
-      // Google Street View Embed API
-      iframe.src = `https://www.google.com/maps/embed/v1/streetview?key=${apiKey}&location=${lat},${lon}&heading=210&pitch=10&fov=90`;
-    }
+      if (apiKey && apiKey.trim() !== '') {
+        // Use Maps Embed API with user's API key
+        console.log('OverpassTurbo-Quickview: Using saved API key');
+
+        if (tabName === 'maps') {
+          // Google Maps Embed API - satellite view
+          iframe.src = `https://www.google.com/maps/embed/v1/view?key=${apiKey}&center=${lat},${lon}&zoom=19&maptype=satellite`;
+        } else if (tabName === 'streetview') {
+          // Google Street View Embed API
+          iframe.src = `https://www.google.com/maps/embed/v1/streetview?key=${apiKey}&location=${lat},${lon}&heading=210&pitch=10&fov=90`;
+        }
+      } else {
+        // Fallback to standard embed URLs (no API key required)
+        console.log('OverpassTurbo-Quickview: No API key found, using standard embed URLs');
+
+        if (tabName === 'maps') {
+          // Google Maps standard embed URL - satellite view
+          iframe.src = `https://maps.google.com/maps?q=${lat},${lon}&t=k&z=18&output=embed`;
+        } else if (tabName === 'streetview') {
+          // Google Street View using standard maps URL
+          iframe.src = `https://maps.google.com/maps?q=&layer=c&cbll=${lat},${lon}&cbp=11,0,0,0,0&output=embed`;
+        }
+      }
+    });
   }
 
   // Start the extension
