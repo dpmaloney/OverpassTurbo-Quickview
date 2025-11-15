@@ -295,11 +295,11 @@
 
     // Load appropriate view
     if (tabName === 'maps') {
-      // Google Maps embed URL
-      iframe.src = `https://www.google.com/maps/embed/v1/view?key=AIzaSyCamo8uLOLtnbAGAG9-j6yf0fyjJq0m71M&center=${lat},${lon}&zoom=18&maptype=satellite`;
+      // Google Maps standard embed URL (no API key needed)
+      iframe.src = `https://maps.google.com/maps?q=${lat},${lon}&t=k&z=18&output=embed`;
     } else if (tabName === 'streetview') {
-      // Google Street View embed URL with API key
-      iframe.src = `https://www.google.com/maps/embed/v1/streetview?location=${lat},${lon}&key=AIzaSyCamo8uLOLtnbAGAG9-j6yf0fyjJq0m71M&heading=0&pitch=0&fov=90`;
+      // Google Street View using standard maps URL
+      iframe.src = `https://maps.google.com/maps?q=&layer=c&cbll=${lat},${lon}&cbp=11,0,0,0,0&output=embed`;
     }
   }
 
