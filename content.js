@@ -9,9 +9,9 @@
 
   // Initialize the extension
   function init() {
-    console.log('OverpassTurbo-Quickview: Initializing...');
+    console.log('OverpassTurbo-Quickview: Extension loaded');
 
-    // Wait for Overpass Turbo to load
+    // Wait for page to be ready
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', setup);
     } else {
@@ -20,16 +20,18 @@
   }
 
   function setup() {
-    // Create the viewer modal (hidden by default)
+    console.log('OverpassTurbo-Quickview: Setting up...');
+
+    // Create the viewer modal
     createViewerModal();
 
     // Add keyboard shortcuts
     setupKeyboardShortcuts();
 
-    // Monitor for result clicks and add view buttons
-    setupResultMonitoring();
+    // Monitor for Leaflet map clicks (Overpass Turbo uses Leaflet)
+    setupMapMonitoring();
 
-    console.log('OverpassTurbo-Quickview: Ready');
+    console.log('OverpassTurbo-Quickview: Ready! Click on map markers or press V with a feature selected.');
   }
 
   // Create the modal viewer UI
@@ -53,12 +55,13 @@
           <iframe class="overpass-quickview-frame" id="quickview-frame"></iframe>
         </div>
         <div class="overpass-quickview-footer">
-          <span class="overpass-quickview-hint">Press <kbd>Esc</kbd> to close | <kbd>M</kbd> for Maps | <kbd>S</kbd> for Street View</span>
+          <span class="overpass-quickview-hint">Press <kbd>Esc</kbd> to close | <kbd>M</kbd> for Maps | <kbd>S</kbd> for Street View | Click coordinates to copy</span>
         </div>
       </div>
     `;
 
     document.body.appendChild(viewerModal);
+    console.log('OverpassTurbo-Quickview: Modal created');
 
     // Setup modal event listeners
     viewerModal.querySelector('.overpass-quickview-close').addEventListener('click', closeViewer);
@@ -69,6 +72,16 @@
       tab.addEventListener('click', function() {
         switchTab(this.dataset.tab);
       });
+    });
+
+    // Click coordinates to copy
+    viewerModal.querySelector('.overpass-quickview-coordinates').addEventListener('click', function() {
+      if (currentCoordinates) {
+        const text = `${currentCoordinates.lat}, ${currentCoordinates.lon}`;
+        navigator.clipboard.writeText(text).then(() => {
+          console.log('Coordinates copied:', text);
+        });
+      }
     });
   }
 
@@ -86,11 +99,15 @@
         return;
       }
 
-      // V to open viewer with selected result
+      // V to open viewer with clicked location or selected feature
       if (e.key === 'v' || e.key === 'V') {
-        const coords = getSelectedResultCoordinates();
+        console.log('OverpassTurbo-Quickview: V pressed');
+        const coords = getCoordinatesFromPage();
         if (coords) {
+          console.log('OverpassTurbo-Quickview: Found coordinates:', coords);
           openViewer(coords);
+        } else {
+          console.log('OverpassTurbo-Quickview: No coordinates found. Try clicking on a map marker first.');
         }
       }
 
@@ -104,172 +121,121 @@
         switchTab('streetview');
       }
     });
+
+    console.log('OverpassTurbo-Quickview: Keyboard shortcuts set up');
   }
 
-  // Monitor Overpass Turbo results and add view buttons
-  function setupResultMonitoring() {
-    // Use MutationObserver to watch for result changes
+  // Monitor for map interactions
+  function setupMapMonitoring() {
+    // Add a mutation observer to watch for popup changes
     const observer = new MutationObserver(function(mutations) {
-      addViewButtons();
+      // Check for Leaflet popups
+      const popup = document.querySelector('.leaflet-popup-content');
+      if (popup && !popup.querySelector('.overpass-quickview-btn')) {
+        addViewButtonToPopup(popup);
+      }
     });
 
-    // Observe the entire document for changes
+    // Observe the entire document for popup changes
     observer.observe(document.body, {
       childList: true,
       subtree: true
     });
 
-    // Initial button addition
-    setTimeout(addViewButtons, 1000);
+    // Also add click listener to the map
+    setTimeout(() => {
+      const mapContainer = document.querySelector('#map');
+      if (mapContainer) {
+        console.log('OverpassTurbo-Quickview: Map container found');
+
+        // Add click listener to capture coordinates
+        mapContainer.addEventListener('click', function(e) {
+          // Try to get coordinates from Leaflet map
+          setTimeout(() => {
+            const coords = getCoordinatesFromPage();
+            if (coords) {
+              console.log('OverpassTurbo-Quickview: Stored coordinates from click:', coords);
+            }
+          }, 100);
+        });
+      } else {
+        console.log('OverpassTurbo-Quickview: Map container not found yet');
+      }
+    }, 2000);
   }
 
-  // Add "View" buttons to results
-  function addViewButtons() {
-    // Overpass Turbo displays results in various ways:
-    // 1. Data tab - shows raw data
-    // 2. Map view - shows items on map
-    // We'll target the data items in the sidebar and selected map features
+  // Add view button to popup
+  function addViewButtonToPopup(popup) {
+    const coords = extractCoordinatesFromText(popup.textContent);
+    if (!coords) return;
 
-    // Target data table rows
-    const dataRows = document.querySelectorAll('#data_table tbody tr, .element');
+    const btn = document.createElement('button');
+    btn.className = 'overpass-quickview-btn';
+    btn.textContent = '🗺️ View in Maps/Street View';
+    btn.style.cssText = 'display: block; width: 100%; margin-top: 8px; padding: 8px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500;';
 
-    dataRows.forEach(row => {
-      // Skip if already has a button
-      if (row.querySelector('.overpass-quickview-btn')) {
-        return;
-      }
-
-      // Extract coordinates from the row
-      const coords = extractCoordinatesFromElement(row);
-      if (!coords) {
-        return;
-      }
-
-      // Create view button
-      const btn = document.createElement('button');
-      btn.className = 'overpass-quickview-btn';
-      btn.textContent = '🗺️ View';
-      btn.title = 'Open in Maps/Street View (V)';
-      btn.dataset.lat = coords.lat;
-      btn.dataset.lon = coords.lon;
-
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        openViewer({ lat: this.dataset.lat, lon: this.dataset.lon });
-      });
-
-      // Insert button
-      const firstCell = row.querySelector('td') || row;
-      if (firstCell) {
-        firstCell.style.position = 'relative';
-        firstCell.appendChild(btn);
-      }
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      console.log('OverpassTurbo-Quickview: Button clicked with coords:', coords);
+      openViewer(coords);
     });
 
-    // Also add context menu to map popups
-    addMapPopupButtons();
+    popup.appendChild(btn);
+    console.log('OverpassTurbo-Quickview: Added view button to popup');
   }
 
-  // Add buttons to map popups
-  function addMapPopupButtons() {
-    const popups = document.querySelectorAll('.leaflet-popup-content');
-
-    popups.forEach(popup => {
-      if (popup.querySelector('.overpass-quickview-btn')) {
-        return;
-      }
-
-      const coords = extractCoordinatesFromPopup(popup);
-      if (!coords) {
-        return;
-      }
-
-      const btn = document.createElement('button');
-      btn.className = 'overpass-quickview-btn overpass-quickview-btn-popup';
-      btn.textContent = '🗺️ Open in Maps/Street View';
-      btn.dataset.lat = coords.lat;
-      btn.dataset.lon = coords.lon;
-
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        openViewer({ lat: this.dataset.lat, lon: this.dataset.lon });
-      });
-
-      popup.appendChild(btn);
-    });
-  }
-
-  // Extract coordinates from various element types
-  function extractCoordinatesFromElement(element) {
-    // Try to find lat/lon in the element text or data attributes
-    const text = element.textContent || '';
-
-    // Look for coordinate patterns like "lat: 51.5, lon: -0.1" or direct coordinates
-    const latMatch = text.match(/lat[:\s]+(-?\d+\.?\d*)/i);
-    const lonMatch = text.match(/lon[:\s]+(-?\d+\.?\d*)/i);
-
-    if (latMatch && lonMatch) {
-      return {
-        lat: parseFloat(latMatch[1]),
-        lon: parseFloat(lonMatch[1])
-      };
-    }
-
-    // Try data attributes
-    if (element.dataset.lat && element.dataset.lon) {
-      return {
-        lat: parseFloat(element.dataset.lat),
-        lon: parseFloat(element.dataset.lon)
-      };
-    }
-
-    // Try to find in child elements
-    const latEl = element.querySelector('[data-lat]');
-    const lonEl = element.querySelector('[data-lon]');
-
-    if (latEl && lonEl) {
-      return {
-        lat: parseFloat(latEl.dataset.lat),
-        lon: parseFloat(lonEl.dataset.lon)
-      };
-    }
-
-    return null;
-  }
-
-  // Extract coordinates from map popup
-  function extractCoordinatesFromPopup(popup) {
-    const text = popup.textContent || popup.innerHTML;
-
-    // Look for various coordinate formats
-    // Format: "lat: 51.5074, lon: -0.1278"
-    let match = text.match(/lat[:\s]+(-?\d+\.?\d*)[,\s]+lon[:\s]+(-?\d+\.?\d*)/i);
-    if (match) {
-      return { lat: parseFloat(match[1]), lon: parseFloat(match[2]) };
-    }
-
-    // Format: coordinates in parentheses (51.5074, -0.1278)
-    match = text.match(/\((-?\d+\.?\d*)[,\s]+(-?\d+\.?\d*)\)/);
-    if (match) {
-      return { lat: parseFloat(match[1]), lon: parseFloat(match[2]) };
-    }
-
-    return null;
-  }
-
-  // Get coordinates from currently selected result
-  function getSelectedResultCoordinates() {
-    // Try to find selected/highlighted element
-    const selected = document.querySelector('.selected, .highlight, tr.active, .element.active');
-
-    if (selected) {
-      return extractCoordinatesFromElement(selected);
-    }
-
-    // Try to get from open popup
+  // Extract coordinates from various sources on the page
+  function getCoordinatesFromPage() {
+    // Try to get from open popup first
     const popup = document.querySelector('.leaflet-popup-content');
     if (popup) {
-      return extractCoordinatesFromPopup(popup);
+      const coords = extractCoordinatesFromText(popup.textContent);
+      if (coords) return coords;
+    }
+
+    // Try to get from data viewer (when a feature is selected)
+    const dataViewer = document.querySelector('#data-viewer, #dataviewer');
+    if (dataViewer) {
+      const coords = extractCoordinatesFromText(dataViewer.textContent);
+      if (coords) return coords;
+    }
+
+    // Try to get from anywhere in the page that has coordinate info
+    const allText = document.body.textContent;
+    return extractCoordinatesFromText(allText);
+  }
+
+  // Extract coordinates from text using multiple patterns
+  function extractCoordinatesFromText(text) {
+    if (!text) return null;
+
+    // Pattern 1: "lat": 51.5, "lon": -0.1
+    let match = text.match(/"lat"[:\s]+(-?\d+\.?\d*)[,\s]+"lon"[:\s]+(-?\d+\.?\d*)/i);
+    if (match) {
+      return { lat: parseFloat(match[1]), lon: parseFloat(match[2]) };
+    }
+
+    // Pattern 2: lat: 51.5, lon: -0.1
+    match = text.match(/lat[:\s]+(-?\d+\.?\d*)[,\s]+lon[:\s]+(-?\d+\.?\d*)/i);
+    if (match) {
+      return { lat: parseFloat(match[1]), lon: parseFloat(match[2]) };
+    }
+
+    // Pattern 3: (51.5, -0.1) or [51.5, -0.1]
+    match = text.match(/[\(\[]\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*[\)\]]/);
+    if (match) {
+      const val1 = parseFloat(match[1]);
+      const val2 = parseFloat(match[2]);
+      // Determine which is lat/lon based on range
+      if (Math.abs(val1) <= 90 && Math.abs(val2) <= 180) {
+        return { lat: val1, lon: val2 };
+      }
+    }
+
+    // Pattern 4: Look for center coordinate from Overpass Turbo
+    match = text.match(/center[:\s]+(-?\d+\.?\d*)[,\s]+(-?\d+\.?\d*)/i);
+    if (match) {
+      return { lat: parseFloat(match[1]), lon: parseFloat(match[2]) };
     }
 
     return null;
@@ -278,15 +244,18 @@
   // Open the viewer with given coordinates
   function openViewer(coords) {
     if (!coords || !coords.lat || !coords.lon) {
-      console.error('Invalid coordinates:', coords);
+      console.error('OverpassTurbo-Quickview: Invalid coordinates:', coords);
       return;
     }
 
     currentCoordinates = coords;
+    console.log('OverpassTurbo-Quickview: Opening viewer with:', coords);
 
     // Update coordinates display
     const coordsDisplay = viewerModal.querySelector('.overpass-quickview-coordinates');
     coordsDisplay.textContent = `📍 ${coords.lat.toFixed(6)}, ${coords.lon.toFixed(6)}`;
+    coordsDisplay.style.cursor = 'pointer';
+    coordsDisplay.title = 'Click to copy coordinates';
 
     // Load the current tab
     const activeTab = viewerModal.querySelector('.overpass-quickview-tab.active');
@@ -299,6 +268,7 @@
 
   // Close the viewer
   function closeViewer() {
+    console.log('OverpassTurbo-Quickview: Closing viewer');
     viewerModal.classList.add('overpass-quickview-hidden');
     document.body.style.overflow = '';
 
@@ -315,6 +285,8 @@
 
     const { lat, lon } = currentCoordinates;
     const iframe = viewerModal.querySelector('#quickview-frame');
+
+    console.log('OverpassTurbo-Quickview: Switching to', tabName, 'with coords:', lat, lon);
 
     // Update active tab
     viewerModal.querySelectorAll('.overpass-quickview-tab').forEach(tab => {
